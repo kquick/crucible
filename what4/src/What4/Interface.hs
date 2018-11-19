@@ -160,6 +160,7 @@ import           Data.Ratio
 import           Data.Scientific (Scientific)
 import           Data.Text (Text)
 import           GHC.Generics (Generic)
+import           GHC.TypeLits as Nat
 import           Numeric.Natural
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
 
@@ -2051,7 +2052,7 @@ bvJoinVector :: forall sym n w. (1 <= w, IsExprBuilder sym)
              => sym
              -> NatRepr w
              -> Vector.Vector n (SymBV sym w)
-             -> IO (SymBV sym (n * w))
+             -> IO (SymBV sym (n Nat.* w))
 bvJoinVector sym w =
   coerce $ Vector.joinWithM @IO @(SymBV' sym) @n bvConcat' w
   where bvConcat' :: forall l. (1 <= l)
@@ -2066,15 +2067,15 @@ bvSplitVector :: forall sym n w. (IsExprBuilder sym, 1 <= w, 1 <= n)
               => sym
               -> NatRepr n
               -> NatRepr w
-              -> SymBV sym (n * w)
+              -> SymBV sym (n Nat.* w)
               -> IO (Vector.Vector n (SymBV sym w))
 bvSplitVector sym n w x =
   coerce $ Vector.splitWithA @IO LittleEndian bvSelect' n w (MkSymBV' @sym x)
   where
-    bvSelect' :: forall i. (i + w <= n * w)
-              => NatRepr (n * w)
+    bvSelect' :: forall i. (i + w <= n Nat.* w)
+              => NatRepr (n Nat.* w)
               -> NatRepr i
-              -> SymBV' sym (n * w)
+              -> SymBV' sym (n Nat.* w)
               -> IO (SymBV' sym w)
     bvSelect' _ i (MkSymBV' y) =
       fmap MkSymBV' $ bvSelect @_ @i @w sym i w y
@@ -2091,8 +2092,8 @@ bvSplitVector sym n w x =
 bvSwap :: forall sym n. (1 <= n, IsExprBuilder sym)
        => sym               -- ^ Symbolic interface
        -> NatRepr n
-       -> SymBV sym (n*8)   -- ^ Bitvector to swap around
-       -> IO (SymBV sym (n*8))
+       -> SymBV sym (n Nat.* 8)   -- ^ Bitvector to swap around
+       -> IO (SymBV sym (n Nat.* 8))
 bvSwap sym n v = do
   bvJoinVector sym (knownNat @8) . Vector.reverse
     =<< bvSplitVector sym n (knownNat @8) v
